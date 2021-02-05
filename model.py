@@ -40,12 +40,11 @@ class Model:
                 - mutation ratio
                 """
 
-    def __init__(self, Graph: nx.Graph, coupling_tensor: np.ndarray, mutation_rate: float, uncertainty: float, surrender_option_on: bool): #F: isn't mutation rate a float in [0,1) ?
-    
+    def __init__(self, Graph: nx.Graph, coupling_tensor: np.ndarray, mutation_rate: int, uncertainty: float, surrender_option_on: bool):
+
         self.coupling_tensor = coupling_tensor
         # check if coupling tensor is square
-        if not all([coupling_tensor.shape[0] == i for i in coupling_tensor.shape]): #F: Replace by the below, saves the iteration.
-        #F: if(coupling_tensor.shape[0]!=coupling_tensor.shape[1])
+        if not all([coupling_tensor.shape[0] == i for i in coupling_tensor.shape]):
             raise Exception("Coupling tensor is not square.")
         self.genome_len = coupling_tensor.shape[0]
 
@@ -60,25 +59,20 @@ class Model:
         self.surrender_option_on = surrender_option_on
 
     def fitness(self, genome):
-        f = 0 #F: replace loop with np.dot construction --> saves run-time
+        f = 0
         for i in range(0, self.genome_len):
             for j in range(0, self.genome_len):
                 f += genome[i] * genome[j] * self.coupling_tensor[i][j]
-        # f = np.dot(genome,np.dot(self.coupling_tensor,genome))
-
         # Problem: we need negative coupling coefficients, because otherwise
-        # more genes are simply better, and optimising is trivial. #F: Alternatively regularise (i.e. penalise having too many genes by subtracting lp-norm of genome vector).
-        # In a biological context this might correspond to limitations on the organism (or maybe something else, who knows?).
-
+        # more genes are simply better, and optimising is trivial.
         # at the same time negative fitness is no bueno for the p_win() formula:
         # p(a wins over b) = f_a / (f_a + f_b)
-        # so: we will use exp(f) to map (-inf,inf) -> (0, inf) so that we no longer have negative values. #F: this implies that fitness 
+        # so: we will use exp(f) to map (-inf,inf) -> (0, inf) so that we no longer have negative values.
 
         # In order to simulate a population already near optimum/equilibrium,
         # we will add a large constant factor to the fitness.
         # We expect that this will emphasise the difference between, surrender_on and surrender_off
-        const = 999999999 #F: Maybe the factor should depend somehow on the coupling matrix, e.g. a 
-        # constant times its exp of its Frobenius-norm or 2-operator norm (?), as we want exp(f) to be small compared to const, right?
+        const = 999999999
         return const + np.exp(f)
 
     def step(self):
